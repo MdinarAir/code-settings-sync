@@ -7,6 +7,7 @@ import Commons from "../../commons";
 import { CloudSettings } from "../../models/cloudSettings.model";
 import { state } from "../../state";
 import { File } from "../file.service";
+import { buildGistPatchFiles } from "../gistUpdate";
 
 interface IEnv {
   [key: string]: string | undefined;
@@ -161,12 +162,24 @@ export class GitHubService {
     }
   }
 
-  public UpdateGIST(gistObject: any, files: File[]): any {
+  public UpdateGIST(
+    gistObject: any,
+    changedFiles: File[],
+    deletedFileNames?: string[]
+  ): any {
+    if (deletedFileNames !== undefined) {
+      gistObject.data.files = buildGistPatchFiles(
+        changedFiles,
+        deletedFileNames
+      );
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return gistObject;
+    }
     const allFiles: string[] = Object.keys(gistObject.data.files);
     for (const fileName of allFiles) {
       let exists = false;
 
-      for (const settingFile of files) {
+      for (const settingFile of changedFiles) {
         if (settingFile.gistName === fileName) {
           exists = true;
         }
@@ -177,7 +190,7 @@ export class GitHubService {
       }
     }
 
-    gistObject.data = this.AddFile(files, gistObject.data);
+    gistObject.data = this.AddFile(changedFiles, gistObject.data);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return gistObject;
   }

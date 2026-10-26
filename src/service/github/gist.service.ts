@@ -12,6 +12,7 @@ import { IExtensionState } from "../../models/state.model";
 import PragmaUtil from "../../pragmaUtil";
 import { EditorService } from "../editor.service";
 import { File, FileService } from "../file.service";
+import { planGistUpdate } from "../gistUpdate";
 import {
   ExtensionInformation,
   InstalledExtensionsSummary,
@@ -119,7 +120,7 @@ export class GistService implements ISyncService {
       // var remoteList = ExtensionInformation.fromJSONList(file.content);
       // var deletedList = PluginService.GetDeletedExtensions(uploadedExtensions);
       if (syncSetting.syncExtensions) {
-        uploadedExtensions = PluginService.CreateExtensionList();
+        uploadedExtensions = PluginService.CreateExtensionListWithDisabled(this.state.environment.EXTENSION_FOLDER);
         if (
           customSettings.ignoreExtensions &&
           customSettings.ignoreExtensions.length > 0
@@ -218,6 +219,8 @@ export class GistService implements ISyncService {
       allSettingFiles.push(file);
       let completed = false;
       let newGIST = false;
+      let changedSettingFiles: File[] = allSettingFiles;
+      let deletedGistFiles: string[] = [];
       try {
         if (syncSetting.sortAlphabetically) {
           for (const settingFile of allSettingFiles) {
@@ -284,23 +287,22 @@ export class GistService implements ISyncService {
         if (gistObj.data.public === true) {
           localConfig.publicGist = true;
         }
-        if (
-          !allSettingFiles.some(fileToUpload => {
-            if (fileToUpload.gistName === "cloudSettings") {
-              return false;
-            }
-            if (!gistObj.data.files[fileToUpload.gistName]) {
-              return true;
-            }
-            if (
-              gistObj.data.files[fileToUpload.gistName].content !==
-              fileToUpload.content
-            ) {
-              console.info(`Sync: file ${fileToUpload.gistName} has changed`);
-              return true;
-            }
-          })
-        ) {
+        const gistUpdatePlan = planGistUpdate(
+          gistObj.data.files || {},
+          allSettingFiles
+        );
+        changedSettingFiles = localConfig.extConfig.forceUpload
+          ? allSettingFiles
+          : gistUpdatePlan.changedFiles;
+        deletedGistFiles = gistUpdatePlan.deletedFileNames;
+        const hasMeaningfulUploadChanges =
+          gistUpdatePlan.changedFiles.some(fileToUpload => {
+            return (
+              fileToUpload.gistName !==
+              this.state.environment.FILE_CLOUDSETTINGS_NAME
+            );
+          }) || deletedGistFiles.length > 0;
+        if (!hasMeaningfulUploadChanges) {
           // Gist files are the same as the local files.
           if (!localConfig.extConfig.forceUpload) {
             vscode.window.setStatusBarMessage(
@@ -357,7 +359,7 @@ export class GistService implements ISyncService {
           localize("cmd.updateSettings.info.uploadingFile"),
           3000
         );
-        gistObj = github.UpdateGIST(gistObj, allSettingFiles);
+        gistObj = github.UpdateGIST(gistObj, changedSettingFiles, deletedGistFiles);
         completed = await github.SaveGIST(gistObj.data);
         if (!completed) {
           vscode.window.showErrorMessage(
@@ -391,7 +393,7 @@ export class GistService implements ISyncService {
           if (!syncSetting.quietSync) {
             this.state.commons.ShowSummaryOutput(
               true,
-              allSettingFiles,
+              changedSettingFiles,
               null,
               { addedExtensions: uploadedExtensions, failedExtensions: [] },
               ignoredExtensions,
@@ -601,6 +603,21 @@ export class GistService implements ISyncService {
                   }
                 }
               );
+              try {
+                const remoteList = ExtensionInformation.fromJSONList(content);
+                await PluginService.DisableExtensions(
+                  remoteList,
+                  (message: string) => {
+                    if (!syncSetting.quietSync && Commons.outputChannel) {
+                      Commons.outputChannel.appendLine(message);
+                    } else {
+                      console.log(message);
+                    }
+                  }
+                );
+              } catch (err) {
+                console.log(err);
+              }
             } catch (err) {
               throw new Error(err);
             }

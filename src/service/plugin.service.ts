@@ -1,25 +1,26 @@
 "use strict";
 import * as vscode from "vscode";
+import { state } from "../state";
+import { listDiskExtensionEntries } from "./extensionInventory.service";
 
 export class ExtensionInformation {
   public static fromJSON(text: string) {
     try {
-      // TODO: JSON.parse may throw error
-      // Throw custom error should be more friendly
       const obj = JSON.parse(text);
       const meta = new ExtensionMetadata(
-        obj.meta.galleryApiUrl,
-        obj.meta.id,
-        obj.meta.downloadUrl,
-        obj.meta.publisherId,
-        obj.meta.publisherDisplayName,
-        obj.meta.date
+        obj.meta ? obj.meta.galleryApiUrl : "",
+        obj.meta ? obj.meta.id : "",
+        obj.meta ? obj.meta.downloadUrl : "",
+        obj.meta ? obj.meta.publisherId : "",
+        obj.meta ? obj.meta.publisherDisplayName : "",
+        obj.meta ? obj.meta.date : ""
       );
       const item = new ExtensionInformation();
       item.metadata = meta;
       item.name = obj.name;
       item.publisher = obj.publisher;
       item.version = obj.version;
+      item.disabled = !!obj.disabled;
       return item;
     } catch (err) {
       throw new Error(err);
@@ -29,23 +30,22 @@ export class ExtensionInformation {
   public static fromJSONList(text: string) {
     const extList: ExtensionInformation[] = [];
     try {
-      // TODO: JSON.parse may throw error
-      // Throw custom error should be more friendly
       const list = JSON.parse(text);
       list.forEach(obj => {
         const meta = new ExtensionMetadata(
-          obj.metadata.galleryApiUrl,
-          obj.metadata.id,
-          obj.metadata.downloadUrl,
-          obj.metadata.publisherId,
-          obj.metadata.publisherDisplayName,
-          obj.metadata.date
+          obj.metadata ? obj.metadata.galleryApiUrl : "",
+          obj.metadata ? obj.metadata.id : "",
+          obj.metadata ? obj.metadata.downloadUrl : "",
+          obj.metadata ? obj.metadata.publisherId : "",
+          obj.metadata ? obj.metadata.publisherDisplayName : "",
+          obj.metadata ? obj.metadata.date : ""
         );
         const item = new ExtensionInformation();
         item.metadata = meta;
         item.name = obj.name;
         item.publisher = obj.publisher;
         item.version = obj.version;
+        item.disabled = !!obj.disabled;
 
         if (item.name !== "code-settings-sync") {
           extList.push(item);
@@ -62,6 +62,7 @@ export class ExtensionInformation {
   public name: string;
   public version: string;
   public publisher: string;
+  public disabled?: boolean = false;
 }
 
 export class ExtensionMetadata {
@@ -103,24 +104,6 @@ export class PluginService {
   ) {
     const localExtensions = this.CreateExtensionList();
 
-    // for (var i = 0; i < remoteList.length; i++) {
-
-    //     var ext = remoteList[i];
-    //     var found: boolean = false;
-
-    //     for (var j = 0; j < localList.length; j++) {
-    //         var localExt = localList[j];
-    //         if (ext.name == localExt.name) {
-    //             found = true;
-    //             break;
-    //         }
-    //     }
-    //     if (!found) {
-    //         deletedList.push(localExt);
-    //     }
-
-    // }
-
     return localExtensions.filter(
       ext =>
         ext.name !== "code-settings-sync" &&
@@ -151,8 +134,78 @@ export class PluginService {
         info.name = ext.packageJSON.name;
         info.publisher = ext.packageJSON.publisher;
         info.version = ext.packageJSON.version;
+        info.disabled = false;
         return info;
       });
+  }
+
+  public static CreateExtensionListWithDisabled(extensionFolder?: string) {
+    const apiList = PluginService.CreateExtensionList();
+    try {
+      const folder =
+        extensionFolder ||
+        (state.environment && state.environment.EXTENSION_FOLDER) ||
+        "";
+      const diskEntries = listDiskExtensionEntries(folder);
+      const known = apiList.map(ext =>
+        `${ext.publisher}.${ext.name}`.toLowerCase()
+      );
+      for (const entry of diskEntries) {
+        const full = `${entry.publisher}.${entry.name}`;
+        if (known.includes(full.toLowerCase())) {
+          continue;
+        }
+        const info = new ExtensionInformation();
+        info.metadata = new ExtensionMetadata(
+          "",
+          "",
+          "",
+          entry.publisher,
+          entry.publisher,
+          ""
+        );
+        info.name = entry.name;
+        info.publisher = entry.publisher;
+        info.version = entry.version;
+        info.disabled = true;
+        apiList.push(info);
+        known.push(full.toLowerCase());
+      }
+    } catch (err) {
+      // Disk scan is best-effort; the API list alone still syncs.
+    }
+    return apiList;
+  }
+
+  public static async DisableExtensions(
+    extensions: ExtensionInformation[],
+    notificationCallBack: (...data: any[]) => void = () => undefined
+  ): Promise<{ disabled: string[]; skipped: string[] }> {
+    const result: { disabled: string[]; skipped: string[] } = {
+      disabled: [],
+      skipped: []
+    };
+    for (const ext of extensions) {
+      if (!ext.disabled) {
+        continue;
+      }
+      const full = `${ext.publisher}.${ext.name}`;
+      try {
+        await vscode.commands.executeCommand(
+          "workbench.extensions.disableExtension",
+          full
+        );
+        notificationCallBack(`Sync : Disabled extension ${full}.`);
+        result.disabled.push(full);
+      } catch (err) {
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+        notificationCallBack(
+          `Sync : Unable to disable extension ${full} on this client: ${err}`
+        );
+        result.skipped.push(full);
+      }
+    }
+    return result;
   }
 
   public static async DeleteExtension(
