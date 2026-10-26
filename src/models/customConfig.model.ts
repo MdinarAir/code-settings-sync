@@ -2,6 +2,7 @@ import { SyncMethod } from "../enums/syncMethod.enum";
 import { state } from "../state";
 import { FileSystemConfig } from "./fileSystem.model";
 import { GitHubConfig } from "./github/github.model";
+import { RepositorySyncConfig } from "./repositorySyncConfig.model";
 
 export class CustomConfig {
   public ignoreUploadFiles: string[] = [
@@ -17,6 +18,7 @@ export class CustomConfig {
     "gpm-recentItems.json",
   ];
   public ignoreUploadFolders: string[] = [
+    ".git",
     "workspaceStorage",
     "globalStorage",
     "History",
@@ -26,6 +28,7 @@ export class CustomConfig {
   public syncMethod: SyncMethod = SyncMethod.GitHubGist;
   public githubSettings: GitHubConfig = new GitHubConfig();
   public fileSystemSettings: FileSystemConfig = new FileSystemConfig();
+  public repositorySync: RepositorySyncConfig = new RepositorySyncConfig();
 
 
   public version = Number(

@@ -2,6 +2,7 @@ import { SyncMethod } from "../enums/syncMethod.enum";
 import { ISyncService } from "../models/ISyncService.model";
 import { IExtensionState } from "../models/state.model";
 import { FileSystemService } from "./filesystem/filesystem.service";
+import { GitRepositorySyncService } from "./git/repositorySync.service";
 import { GistService } from "./github/gist.service";
 
 export class FactoryService {
@@ -21,6 +22,7 @@ export class FactoryService {
   }
   private static syncMethods = {
     [SyncMethod.GitHubGist]: GistService,
-    [SyncMethod.FileSystem]: FileSystemService
+    [SyncMethod.FileSystem]: FileSystemService,
+    [SyncMethod.GitRepository]: GitRepositorySyncService
   };
 }

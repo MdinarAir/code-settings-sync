@@ -526,9 +526,20 @@ export class Sync {
       return SyncMethod.GitHubGist;
     }
     const customSettings = await state.commons.GetCustomSettings();
-    return customSettings && customSettings.syncMethod === SyncMethod.FileSystem
-      ? SyncMethod.FileSystem
-      : SyncMethod.GitHubGist;
+    if (!customSettings) {
+      return SyncMethod.GitHubGist;
+    }
+    if (customSettings.syncMethod === SyncMethod.FileSystem) {
+      return SyncMethod.FileSystem;
+    }
+    if (
+      customSettings.syncMethod === SyncMethod.GitRepository ||
+      (customSettings.repositorySync &&
+        customSettings.repositorySync.mode === "repository")
+    ) {
+      return SyncMethod.GitRepository;
+    }
+    return SyncMethod.GitHubGist;
   }
   private async getCustomFilesFromGist(
     customSettings: CustomConfig,

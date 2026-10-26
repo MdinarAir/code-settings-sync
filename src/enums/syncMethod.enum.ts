@@ -1,4 +1,5 @@
 export enum SyncMethod {
   GitHubGist = "GitHubGist",
-  FileSystem = "FileSystem"
+  FileSystem = "FileSystem",
+  GitRepository = "GitRepository"
 }
