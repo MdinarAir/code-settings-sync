@@ -305,6 +305,14 @@ export class GistService implements ISyncService {
         if (!hasMeaningfulUploadChanges) {
           // Gist files are the same as the local files.
           if (!localConfig.extConfig.forceUpload) {
+            this.state.commons.ShowSummaryOutput(
+              true,
+              changedSettingFiles,
+              null,
+              { addedExtensions: uploadedExtensions, failedExtensions: [] },
+              ignoredExtensions,
+              localConfig
+            );
             vscode.window.setStatusBarMessage(
               localize("cmd.updateSettings.info.gotLatestVersion"),
               5000
@@ -390,15 +398,15 @@ export class GistService implements ISyncService {
               localize("cmd.updateSettings.info.shareGist")
             );
           }
+          this.state.commons.ShowSummaryOutput(
+            true,
+            changedSettingFiles,
+            null,
+            { addedExtensions: uploadedExtensions, failedExtensions: [] },
+            ignoredExtensions,
+            localConfig
+          );
           if (!syncSetting.quietSync) {
-            this.state.commons.ShowSummaryOutput(
-              true,
-              changedSettingFiles,
-              null,
-              { addedExtensions: uploadedExtensions, failedExtensions: [] },
-              ignoredExtensions,
-              localConfig
-            );
             vscode.window.setStatusBarMessage("").dispose();
           } else {
             vscode.window.setStatusBarMessage("").dispose();
@@ -485,6 +493,14 @@ export class GistService implements ISyncService {
 
       if (!syncSetting.forceDownload) {
         if (upToDate) {
+          this.state.commons.ShowSummaryOutput(
+            false,
+            updatedFiles,
+            deletedExtensions,
+            extensionsInstallSummary,
+            null,
+            localSettings
+          );
           vscode.window.setStatusBarMessage("").dispose();
           vscode.window.setStatusBarMessage(
             localize("cmd.downloadSettings.info.gotLatestVersion"),
@@ -706,15 +722,15 @@ export class GistService implements ISyncService {
       customSettings
     );
     if (settingsUpdated && customSettingsUpdated) {
+      this.state.commons.ShowSummaryOutput(
+        false,
+        updatedFiles,
+        deletedExtensions,
+        extensionsInstallSummary,
+        null,
+        localSettings
+      );
       if (!syncSetting.quietSync) {
-        this.state.commons.ShowSummaryOutput(
-          false,
-          updatedFiles,
-          deletedExtensions,
-          extensionsInstallSummary,
-          null,
-          localSettings
-        );
         if (
           deletedExtensions.length > 0 ||
           extensionsInstallSummary.addedExtensions.length > 0

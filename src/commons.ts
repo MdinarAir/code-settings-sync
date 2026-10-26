@@ -521,11 +521,14 @@ export default class Commons {
     outputChannel.appendLine(`--------------------`);
 
     outputChannel.appendLine(`Files ${upload ? "Upload" : "Download"}ed:`);
-    files
-      .filter(item => item.fileName.indexOf(".") > 0)
-      .forEach(item => {
+    const visibleFiles = files.filter(item => item.fileName.indexOf(".") > 0);
+    if (visibleFiles.length === 0) {
+      outputChannel.appendLine(`  No file changes (already up to date).`);
+    } else {
+      visibleFiles.forEach(item => {
         outputChannel.appendLine(`  ${item.fileName} > ${item.gistName}`);
       });
+    }
 
     outputChannel.appendLine(``);
     outputChannel.appendLine(`Extensions Ignored:`);
@@ -577,7 +580,8 @@ export default class Commons {
     }
 
     outputChannel.appendLine(`--------------------`);
-    outputChannel.append(`Done.`);
+    outputChannel.appendLine(`Done.`);
+    outputChannel.appendLine(``);
     outputChannel.show(true);
   }
 }
