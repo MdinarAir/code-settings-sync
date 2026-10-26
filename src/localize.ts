@@ -14,6 +14,7 @@ export class Localize {
 
   private init() {
     this.options = {
+      locale: "en",
       ...this.options,
       ...JSON.parse(process.env.VSCODE_NLS_CONFIG || "{}")
     };
@@ -34,8 +35,8 @@ export class Localize {
     const languageFormat = "package.nls{0}.json";
     const defaultLanguage = languageFormat.replace("{0}", "");
 
-    const rootPath = extensions.getExtension("Shan.code-settings-sync")
-      .extensionPath;
+    const ext = extensions.getExtension("Shan.code-settings-sync");
+    const rootPath = ext ? ext.extensionPath : resolve(__dirname, "..");
 
     const resolvedLanguage = this.recurseCandidates(
       rootPath,
@@ -63,6 +64,9 @@ export class Localize {
     format: string,
     candidate: string
   ): string {
+    if (!candidate) {
+      return format.replace("{0}", "");
+    }
     const filename = format.replace("{0}", `.${candidate}`);
     const filepath = resolve(rootPath, filename);
     if (existsSync(filepath)) {

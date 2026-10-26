@@ -11,8 +11,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
   const sync = new Sync();
 
-  sync.bootstrap();
-
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "extension.updateSettings",
@@ -51,4 +49,6 @@ export async function activate(context: vscode.ExtensionContext) {
       sync.selectFileSystemFolder.bind(sync)
     )
   );
+
+  await sync.bootstrap();
 }

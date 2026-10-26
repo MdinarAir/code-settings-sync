@@ -39,7 +39,7 @@ const config = {
   },
   externals: {
     vscode: "commonjs vscode",
-    chokidar: "commonjs chokidar",
+    fsevents: "commonjs fsevents",
     "vscode-fsevents": "commonjs vscode-fsevents",
     "original-fs": "commonjs original-fs"
   },
