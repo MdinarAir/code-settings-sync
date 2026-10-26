@@ -1,7 +1,7 @@
 import { recorded, ResetStub, usingStub } from "../filesystem/vscode.stub";
 
 import { expect } from "chai";
-import * as fs from "fs";
+import * as fs from "fs-extra";
 import * as os from "os";
 import * as path from "path";
 import * as vscode from "vscode";
@@ -53,7 +53,7 @@ describe("Disabled Extensions Sync (#143)", function() {
 
   afterEach(() => {
     (vscode.extensions as any).all = [];
-    fs.rmdirSync(folder, { recursive: true });
+    fs.removeSync(folder);
   });
 
   it("parses on-disk <publisher>.<name>-<version> folders", () => {
