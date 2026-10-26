@@ -7,6 +7,17 @@ function appendHTML(parent, html) {
     parent.appendChild(div.children[0]);
   }
   div.remove();
+
+  // Destroy all existing tooltips to prevent duplication (PR #1444)
+  var tooltipElements = document.querySelectorAll('[data-toggle="tooltip"]');
+  tooltipElements.forEach(function(tooltip) {
+    if (typeof $ === "function" && $(tooltip).data("bs.tooltip")) {
+      $(tooltip).tooltip("dispose");
+    }
+  });
+  if (typeof $ === "function") {
+    $('[data-toggle="tooltip"]').tooltip({ container: "body" });
+  }
 }
 
 const vscode = acquireVsCodeApi();
