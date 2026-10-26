@@ -78,7 +78,7 @@ export class FileService {
     filePath: string,
     data: string
   ): Promise<boolean> {
-    // An intentionally empty file is still a valid download payload.
+    // An intentionally empty file is still a valid sync payload.
     if (data === null || data === undefined) {
       console.error(
         new Error(
